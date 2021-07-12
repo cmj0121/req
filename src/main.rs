@@ -76,7 +76,7 @@ fn main() {
             };
             trace!("parse text: {}", text);
 
-            match serde_json::to_string(&q.parse(&text).unwrap()) {
+            match serde_json::to_string(&q.parse(&text, opt.single).unwrap()) {
                 Ok(json) => println!("{}", json),
                 Err(err) => error!("convert to JSON: {}", err),
             }
