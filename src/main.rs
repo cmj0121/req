@@ -1,5 +1,6 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
 use log::{error, trace};
+use req::RegexQuery;
 use std::fs;
 use std::io::{self, Read};
 use std::path::PathBuf;
@@ -50,28 +51,38 @@ fn main() {
         .init()
         .unwrap();
 
-    let text: String = match opt.file {
-        None => {
-            let mut text = String::new();
+    match RegexQuery::new(&opt.regex) {
+        Ok(q) => {
+            let text: String = match opt.file {
+                None => {
+                    let mut text = String::new();
 
-            match io::stdin().read_to_string(&mut text) {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("cannot read from STDIN: {}", err);
-                    return;
+                    match io::stdin().read_to_string(&mut text) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            error!("cannot read from STDIN: {}", err);
+                            return;
+                        }
+                    };
+                    text
                 }
+                Some(filename) => match fs::read_to_string(filename.clone()) {
+                    Ok(text) => text,
+                    Err(err) => {
+                        error!("cannot read file {:?}: {}", filename, err);
+                        return;
+                    }
+                },
             };
-            text
-        }
-        Some(filename) => match fs::read_to_string(filename.clone()) {
-            Ok(text) => text,
-            Err(err) => {
-                error!("cannot read file {:?}: {}", filename, err);
-                return;
+            trace!("parse text: {}", text);
+
+            match serde_json::to_string(&q.parse(&text).unwrap()) {
+                Ok(json) => println!("{}", json),
+                Err(err) => error!("convert to JSON: {}", err),
             }
-        },
-    };
-    trace!("parse text: {}", text);
+        }
+        Err(err) => error!("{}: {:?}", opt.regex, err),
+    }
 }
 
 // vim: set ts=4 sw=4 expandtab:
