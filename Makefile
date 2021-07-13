@@ -19,6 +19,10 @@ doc:		# show the document
 $(BIN): $(wildcard src/*.rs) test
 	cargo build --release
 
+INSTALL_PATH := /usr/local/bin
+install: $(BIN)
+	install -m 755 $(BIN) $(INSTALL_PATH)
+
 test:
 	@cargo check
 	@cargo fmt
