@@ -2,6 +2,7 @@
 use crate::Error;
 use log::trace;
 use regex::Regex;
+use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Read};
@@ -50,7 +51,42 @@ impl Value {
         trace!("from_str text: {}", text);
         match Regex::new(re) {
             Err(err) => Err(Error::InvalidRegex(format!("{} invalid:{}", re, err))),
-            Ok(_) => Err(Error::NotImplemented),
+            Ok(_) => {
+                let obj = Value::NULL;
+
+                Ok(obj)
+            }
+        }
+    }
+}
+
+/// The JSON serializer of the Value.
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Value::NULL => serializer.serialize_none(),
+            Value::String(s) => serializer.serialize_str(&s),
+            Value::Array(vec) => {
+                let mut seq = serializer.serialize_seq(Some(vec.len()))?;
+
+                for elem in vec {
+                    seq.serialize_element(elem)?;
+                }
+
+                seq.end()
+            }
+            Value::Object(map) => {
+                let mut seq = serializer.serialize_map(Some(map.len()))?;
+
+                for (k, v) in map.iter() {
+                    seq.serialize_entry(k, v)?;
+                }
+
+                seq.end()
+            }
         }
     }
 }

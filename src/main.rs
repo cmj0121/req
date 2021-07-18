@@ -47,8 +47,11 @@ fn main() {
         .unwrap();
 
     match Value::new(args.file, &args.regex) {
-        Ok(_) => {}
         Err(err) => error!("{}", err),
+        Ok(value) => match serde_json::to_string(&value) {
+            Err(err) => error!("transfer to JSON: {}", err),
+            Ok(json) => println!("{}", json),
+        },
     }
 }
 
