@@ -1,8 +1,7 @@
 .PHONY: all clean help doc
 
-BIN=target/release/req
-
-all: $(BIN)	# build binary
+all:  linter	# build binary
+	cargo build --release
 
 clean:		# clean-up environment
 	cargo clean
@@ -16,15 +15,10 @@ help:		# show this message
 doc:		# show the document
 	cargo doc --open
 
-$(BIN): $(wildcard src/*.rs) test
-	cargo build --release
+linter:	# run static analysis
+	cargo check
+	cargo fmt
 
-INSTALL_PATH := /usr/local/bin
-install: $(BIN)
-	install -m 755 $(BIN) $(INSTALL_PATH)
-
-test:
-	@cargo check
-	@cargo fmt
-	@cargo test
-	@cargo bench
+test:	# run the test
+	cargo test
+	cargo bench

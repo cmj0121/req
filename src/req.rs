@@ -1,70 +1,43 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
-use crate::{Error, Value};
-use log::info;
-use regex::{Captures, Regex};
-use std::collections::HashMap;
+use crate::Error;
+use log::trace;
+use std::fs;
+use std::io::{self, Read};
+use std::path::PathBuf;
 
-pub struct RegexQuery {
-    re: Regex,
-}
+/// The instance that generate the query for regular-expression.
+pub struct Query {}
 
-impl RegexQuery {
-    pub fn new(re: &str) -> Result<Self, Error> {
-        match Regex::new(re) {
-            Ok(re) => Ok(Self { re: re }),
-            Err(err) => {
-                info!("cannot generate re from {:?}: {:?}", re, err);
-                Err(Error::ErrRegexPattern)
-            }
-        }
-    }
+impl Query {
+    /// create a new query instance from passed file path.
+    pub fn new(f: Option<PathBuf>) -> Result<Self, Error> {
+        let mut text = String::new();
 
-    pub fn parse(&self, text: &str, single: bool) -> Result<Value, Error> {
-        match single {
-            true => match self.re.captures(text) {
-                Some(caps) => self.parse_captures(caps),
-                None => Ok(Value::default()),
+        match f {
+            Some(filename) => match fs::read_to_string(filename.clone()) {
+                Ok(raw) => {
+                    text = raw;
+                }
+                Err(err) => {
+                    return Err(Error::Message(format!(
+                        "cannot read from {:?}: {}",
+                        filename, err
+                    )))
+                }
             },
-            false => {
-                let mut vec = Value::Array(vec![]);
-
-                for caps in self.re.captures_iter(text) {
-                    let value = self.parse_captures(caps)?;
-                    vec.push(value)?;
-                }
-
-                Ok(vec)
-            }
+            None => match io::stdin().read_to_string(&mut text) {
+                Ok(_) => {}
+                Err(err) => return Err(Error::Message(format!("cannot read from STDIN: {}", err))),
+            },
         }
+
+        Query::from_str(&text)
     }
 
-    fn parse_captures(&self, caps: Captures) -> Result<Value, Error> {
-        // global matched
-        let mut value = Value::Array(vec![Value::from(&caps[0])]);
-
-        // sub-groups
-        let mut sub_value = Value::Array(vec![]);
-        for sub in caps.iter().skip(1) {
-            match sub {
-                Some(matched) => sub_value.push(Value::from(matched.as_str()))?,
-                None => sub_value.push(Value::default())?,
-            }
-        }
-        value.push(sub_value)?;
-
-        // named-groups
-        let mut named_value: HashMap<String, Value> = HashMap::new();
-        for name in self.re.capture_names().flatten() {
-            match caps.name(name) {
-                Some(matched) => {
-                    named_value.insert(name.to_string(), Value::from(matched.as_str()))
-                }
-                None => named_value.insert(name.to_string(), Value::default()),
-            };
-        }
-        value.push(Value::Object(named_value))?;
-
-        Ok(value)
+    /// create a new query instance from &str.
+    pub fn from_str(text: &str) -> Result<Self, Error> {
+        trace!("from_str: {}", text);
+        Err(Error::NotImplemented)
     }
 }
 
