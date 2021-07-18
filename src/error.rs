@@ -8,7 +8,8 @@ pub enum Error {
     /// Not implemented.
     NotImplemented,
     /// Invalid regex pattern.
-    InvalidRegex(String),
+    InvalidInput(String),
+    /// Invalid regex pattern.
     /// The custimized error message.
     Message(String),
 }
@@ -17,7 +18,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::InvalidRegex(s) => write!(f, "InvalidRegex: {}", s),
+            Error::InvalidInput(s) => write!(f, "Invalid Input: {}", s),
             Error::Message(s) => write!(f, "Error: {}", s),
             _ => write!(f, "{:?}", self),
         }

@@ -1,5 +1,5 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
-use crate::Error;
+use crate::{Error, Query};
 use log::trace;
 use regex::Regex;
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
@@ -22,7 +22,7 @@ pub enum Value {
 
 impl Value {
     /// create a new query instance from passed file path.
-    pub fn new(f: Option<PathBuf>, regex: &str) -> Result<Self, Error> {
+    pub fn new(f: Option<PathBuf>, regex: &str, query: &str) -> Result<Self, Error> {
         let mut text = String::new();
 
         match f {
@@ -43,14 +43,19 @@ impl Value {
             },
         }
 
-        Value::from_str(&text, regex)
+        Value::from_str(&text, regex, query)
     }
 
     /// create a new query instance from &str.
-    pub fn from_str(text: &str, re: &str) -> Result<Self, Error> {
+    pub fn from_str(text: &str, re: &str, query: &str) -> Result<Self, Error> {
         trace!("from_str text: {}", text);
+        let _query = Query::new(query)?;
+
         match Regex::new(re) {
-            Err(err) => Err(Error::InvalidRegex(format!("{} invalid:{}", re, err))),
+            Err(err) => Err(Error::InvalidInput(format!(
+                "regex: {} invalid:{}",
+                re, err
+            ))),
             Ok(_) => {
                 let obj = Value::NULL;
 

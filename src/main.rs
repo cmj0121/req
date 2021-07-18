@@ -28,12 +28,19 @@ struct Arguments {
         short = "f",
         long = "file",
         parse(from_os_str),
-        help = "Processed file (default: read from STDIN)"
+        help = "Processed file [default: read from STDIN]"
     )]
     file: Option<PathBuf>,
 
     #[structopt(name = "REGEX", help = "The regex pattern")]
     regex: String,
+
+    #[structopt(
+        name = "QUERY",
+        help = "The query pattern of the result",
+        default_value = "/a"
+    )]
+    query: String,
 }
 
 fn main() {
@@ -46,7 +53,7 @@ fn main() {
         .init()
         .unwrap();
 
-    match Value::new(args.file, &args.regex) {
+    match Value::new(args.file, &args.regex, &args.query) {
         Err(err) => error!("{}", err),
         Ok(value) => match serde_json::to_string(&value) {
             Err(err) => error!("transfer to JSON: {}", err),
