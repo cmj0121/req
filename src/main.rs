@@ -1,6 +1,6 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
 use log::error;
-use req::Query;
+use req::Value;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -31,6 +31,9 @@ struct Arguments {
         help = "Processed file (default: read from STDIN)"
     )]
     file: Option<PathBuf>,
+
+    #[structopt(name = "REGEX", help = "The regex pattern")]
+    regex: String,
 }
 
 fn main() {
@@ -43,9 +46,9 @@ fn main() {
         .init()
         .unwrap();
 
-    match Query::new(args.file) {
+    match Value::new(args.file, &args.regex) {
         Ok(_) => {}
-        Err(err) => error!("{:?}", err),
+        Err(err) => error!("{}", err),
     }
 }
 

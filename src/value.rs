@@ -1,16 +1,27 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
 use crate::Error;
 use log::trace;
+use regex::Regex;
+use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Read};
 use std::path::PathBuf;
 
-/// The instance that generate the query for regular-expression.
-pub struct Query {}
+/// The result after the query.
+pub enum Value {
+    /// The empty of the result, same 'null' in the JSON.
+    NULL,
+    /// The raw string of the result.
+    String(String),
+    /// The list of the Value.
+    Array(Vec<Value>),
+    /// The named of the key-value pair.
+    Object(HashMap<String, Value>),
+}
 
-impl Query {
+impl Value {
     /// create a new query instance from passed file path.
-    pub fn new(f: Option<PathBuf>) -> Result<Self, Error> {
+    pub fn new(f: Option<PathBuf>, regex: &str) -> Result<Self, Error> {
         let mut text = String::new();
 
         match f {
@@ -31,13 +42,16 @@ impl Query {
             },
         }
 
-        Query::from_str(&text)
+        Value::from_str(&text, regex)
     }
 
     /// create a new query instance from &str.
-    pub fn from_str(text: &str) -> Result<Self, Error> {
-        trace!("from_str: {}", text);
-        Err(Error::NotImplemented)
+    pub fn from_str(text: &str, re: &str) -> Result<Self, Error> {
+        trace!("from_str text: {}", text);
+        match Regex::new(re) {
+            Err(err) => Err(Error::InvalidRegex(format!("{} invalid:{}", re, err))),
+            Ok(_) => Err(Error::NotImplemented),
+        }
     }
 }
 
