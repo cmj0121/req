@@ -1,14 +1,12 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
-use log::{error, trace};
-use req::RegexQuery;
-use std::fs;
-use std::io::{self, Read};
+use log::error;
+use req::Value;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 #[structopt()]
-struct ReqCommandLineTool {
+struct Arguments {
     #[structopt(
         short = "q",
         long = "quiet",
@@ -26,62 +24,41 @@ struct ReqCommandLineTool {
     )]
     verbose: usize,
 
-    #[structopt(short = "s", long = "single", help = "Find the first matched.")]
-    single: bool,
+    #[structopt(
+        short = "f",
+        long = "file",
+        parse(from_os_str),
+        help = "Processed file [default: read from STDIN]"
+    )]
+    file: Option<PathBuf>,
 
     #[structopt(name = "REGEX", help = "The regex pattern")]
     regex: String,
 
     #[structopt(
-        short = "f",
-        long = "file",
-        parse(from_os_str),
-        help = "Processed file, default from stdin"
+        name = "QUERY",
+        help = "The query pattern of the result",
+        default_value = "f/"
     )]
-    file: Option<PathBuf>,
+    query: String,
 }
 
 fn main() {
-    let opt = ReqCommandLineTool::from_args();
+    let args = Arguments::from_args();
 
     stderrlog::new()
         .module(module_path!())
-        .quiet(opt.quiet)
-        .verbosity(opt.verbose)
+        .quiet(args.quiet)
+        .verbosity(args.verbose)
         .init()
         .unwrap();
 
-    match RegexQuery::new(&opt.regex) {
-        Ok(q) => {
-            let text: String = match opt.file {
-                None => {
-                    let mut text = String::new();
-
-                    match io::stdin().read_to_string(&mut text) {
-                        Ok(_) => {}
-                        Err(err) => {
-                            error!("cannot read from STDIN: {}", err);
-                            return;
-                        }
-                    };
-                    text
-                }
-                Some(filename) => match fs::read_to_string(filename.clone()) {
-                    Ok(text) => text,
-                    Err(err) => {
-                        error!("cannot read file {:?}: {}", filename, err);
-                        return;
-                    }
-                },
-            };
-            trace!("parse text: {}", text);
-
-            match serde_json::to_string(&q.parse(&text, opt.single).unwrap()) {
-                Ok(json) => println!("{}", json),
-                Err(err) => error!("convert to JSON: {}", err),
-            }
-        }
-        Err(err) => error!("{}: {:?}", opt.regex, err),
+    match Value::new(args.file, &args.regex, &args.query) {
+        Err(err) => error!("{}", err),
+        Ok(value) => match serde_json::to_string(&value) {
+            Err(err) => error!("transfer to JSON: {}", err),
+            Ok(json) => println!("{}", json),
+        },
     }
 }
 
