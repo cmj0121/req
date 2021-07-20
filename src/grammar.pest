@@ -1,2 +1,5 @@
-query = { SOI ~ ( "/" ~ mode)? ~ EOI }
-mode = {"a" | "all" | "g" | "group" | "n" | "named" }
+query = { SOI ~ ( mode ~ "/" )? ~ EOI }
+
+mode = { single_mode? ~ query_mode? }
+single_mode = { "s" }
+query_mode  = { "f" | "full" | "g" | "group" | "n" | "named" }

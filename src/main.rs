@@ -38,7 +38,7 @@ struct Arguments {
     #[structopt(
         name = "QUERY",
         help = "The query pattern of the result",
-        default_value = "/a"
+        default_value = "f/"
     )]
     query: String,
 }

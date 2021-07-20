@@ -1,7 +1,8 @@
 // Copyright 2021 cmj <cmj@cmj.tw>. All right reserved.
-use crate::{Error, Query};
+use crate::error::Error;
+use crate::query::{Query, QueryMode};
 use log::trace;
-use regex::Regex;
+use regex::{Captures, Regex};
 use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 use std::collections::HashMap;
 use std::fs;
@@ -49,18 +50,75 @@ impl Value {
     /// create a new query instance from &str.
     pub fn from_str(text: &str, re: &str, query: &str) -> Result<Self, Error> {
         trace!("from_str text: {}", text);
-        let _query = Query::new(query)?;
 
         match Regex::new(re) {
             Err(err) => Err(Error::InvalidInput(format!(
                 "regex: {} invalid:{}",
                 re, err
             ))),
-            Ok(_) => {
-                let obj = Value::NULL;
+            Ok(re) => {
+                let query = Query::new(query)?;
 
-                Ok(obj)
+                match query.single_mode {
+                    true => match re.captures(text) {
+                        Some(caps) => Ok(Value::from_capture(caps, &query, &re)),
+                        None => Ok(Value::NULL),
+                    },
+                    false => {
+                        let mut obj: Vec<Value> = vec![];
+
+                        for caps in re.captures_iter(text) {
+                            // save the value into Value::Array
+                            obj.push(Value::from_capture(caps, &query, &re));
+                        }
+
+                        Ok(Value::Array(obj))
+                    }
+                }
             }
+        }
+    }
+
+    /// parse the value from the regex::Captures
+    fn from_capture(caps: Captures, query: &Query, re: &Regex) -> Self {
+        match caps.get(0) {
+            Some(matched) => {
+                match query.query_mode {
+                    QueryMode::Full => Value::String(matched.as_str().to_string()),
+                    QueryMode::Group => {
+                        let mut obj: Vec<Value> = vec![];
+
+                        for sub in caps.iter().skip(1) {
+                            // save the value into Value::Array
+                            match sub {
+                                Some(sub_matched) => {
+                                    obj.push(Value::String(sub_matched.as_str().to_string()))
+                                }
+                                None => obj.push(Value::NULL),
+                            };
+                        }
+
+                        Value::Array(obj)
+                    }
+                    QueryMode::Named => {
+                        let mut obj: HashMap<String, Value> = HashMap::new();
+
+                        for name in re.capture_names().flatten() {
+                            // save the value into Value::Object
+                            match caps.name(name) {
+                                Some(sub_matched) => obj.insert(
+                                    name.to_string(),
+                                    Value::String(sub_matched.as_str().to_string()),
+                                ),
+                                None => obj.insert(name.to_string(), Value::NULL),
+                            };
+                        }
+
+                        Value::Object(obj)
+                    }
+                }
+            }
+            None => Value::NULL,
         }
     }
 }
